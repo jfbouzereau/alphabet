@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body    {
+	margin:20px;
+	padding:0px;
+    background-color: #000000;
+    }
+</style>
+</head>
+<body>
+<canvas id="canvas" width="10" height="10" ></canvas>
+</body>
+<script>
+var side = 20;
+
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+var w = 0;
+var h = 0;
+var nx = 0;
+var ny = 0;
+var id = null;
+var players = {};
+var board = "";
+var name = "";
+
+
+name = window.prompt("Your name ?");
+
+var WebSocket = window.WebSocket || window.MozWebSocket;
+var cn = new WebSocket("ws://"+document.location.host);
+
+
+cn.onopen = function() {
+		msg = {type:"name",value:name};
+		cn.send(JSON.stringify(msg));
+	}
+
+cn.onerror = function(err) {
+	}
+
+cn.onmessage = function(event) {
+
+	var msg = JSON.parse(event.data);
+	switch(msg.type) {
+		case "welcome" :
+			process_welcome(msg);
+			break;
+
+		case "game":
+			process_game(msg);
+			break;
+		}
+	}
+
+document.body.focus();
+document.body.addEventListener("keydown", function(e) {
+	var msg = {type:"move",value:e.keyCode};
+	cn.send(JSON.stringify(msg));
+});	
+
+
+function process_welcome(msg) {
+
+	nx = msg.nx;
+	ny = msg.ny;
+	w = nx*side;
+	h = nx*side;	
+	canvas.setAttribute("width",w+300);
+	canvas.setAttribute("height",h);
+	id = msg.id;
+
+}	//	End of function process_welcome
+
+function process_game(msg) {
+
+	players = msg.players;
+	board = msg.board;
+	draw();
+
+}	//	End of function process_game
+
+function draw() {
+
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0,0,w+300,h);
+    ctx.font = side+"px courier";
+    ctx.fillStyle = "#FFFFFF";
+
+    var k = 0;
+    for(var y=0;y<ny;y++)
+        for(var x=0;x<nx;x++)
+            ctx.fillText(board[k++],x*side+2,y*side+side-3);
+
+    var k = side-3;
+    for(var key in players) 
+        {
+        // draw players on board
+        var p = players[key];
+        ctx.fillStyle = key==id ? "#FF0000" : "#88CC88";
+        ctx.fillRect(p.x*side,p.y*side,side,side);
+
+        // display player's score
+		ctx.fillText(p.name,w+10,k);
+		ctx.fillText(p.last,w+120,k);
+		ctx.fillText(""+p.score,w+150,k);
+        k+=side;
+        }
+
+    }
+
+</script>
+</html>
